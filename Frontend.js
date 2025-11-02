@@ -1,213 +1,30 @@
 // ========================================
-// ENDLLEESTUBE - FRONTEND.JS
-// Tüm Frontend Kodları Tek Dosyada
+// ENDLLEESTUBE FRONTEND
 // ========================================
+// Next.js 15 + TypeScript + Tailwind CSS
+// ========================================
+
+// Main Page Component
 
 'use client'
 
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Play, Upload, User, Eye, Heart, MessageSquare, Search, Filter, Settings, LogOut, Home, TrendingUp, Clock, Shield, AlertCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Play, Upload, User, Eye, Heart, MessageSquare, Search, Filter, Settings, LogOut, Home, 
-  TrendingUp, Clock, Shield, AlertCircle, Edit3, Calendar, Users, BarChart3, Video, 
-  Trash2, Pause, Volume2, VolumeX, Maximize2, SkipBack, SkipForward, Share2, Download, 
-  ThumbsUp, ThumbsDown, Bell, Lock, Palette, Globe, HelpCircle, CheckCircle, AlertTriangle 
-} from 'lucide-react'
-import { useRouter, useParams } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
-import { tr } from 'date-fns/locale'
-
-// ========================================
-// AUTH CONTEXT & PROVIDER
-// ========================================
-
-interface User {
-  id: string
-  username: string
-  email: string
-  displayName: string
-  role: string
-  createdAt: string
-}
-
-interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>
-  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>
-  logout: () => Promise<void>
-  refreshToken: () => Promise<boolean>
-}
-
-interface RegisterData {
-  displayName: string
-  email: string
-  username: string
-  password: string
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('accessToken')
-      if (!token) {
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-      } else {
-        localStorage.removeItem('accessToken')
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const login = async (identifier: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ identifier, password }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setUser(data.user)
-        localStorage.setItem('accessToken', data.accessToken)
-        return { success: true }
-      } else {
-        return { success: false, error: data.error }
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error' }
-    }
-  }
-
-  const register = async (data: RegisterData) => {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setUser(result.user)
-        localStorage.setItem('accessToken', result.accessToken)
-        return { success: true }
-      } else {
-        return { success: false, error: result.error }
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error' }
-    }
-  }
-
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      setUser(null)
-      localStorage.removeItem('accessToken')
-    }
-  }
-
-  const refreshToken = async () => {
-    try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('accessToken', data.accessToken)
-        return true
-      } else {
-        await logout()
-        return false
-      }
-    } catch (error) {
-      await logout()
-      return false
-    }
-  }
-
-  const contextValue: AuthContextType = {
-    user,
-    isLoading,
-    login,
-    register,
-    logout,
-    refreshToken,
-  }
-
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('accessToken')
-  }
-  return null
-}
-
-// ========================================
-// MAIN PAGE COMPONENT
-// ========================================
+import { useAuth } from '@/lib/auth-client'
+import { useRouter } from 'next/navigation'
 
 export default function EndlleesTube() {
   const { user, isLoading, login, register, logout } = useAuth()
@@ -612,13 +429,13 @@ export default function EndlleesTube() {
             ) : (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">Giriş Yap</Button>
+                  <Button variant="outline">Giriş Yap</Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>EndlleesTube'a Hoş Geldiniz!</DialogTitle>
+                    <DialogTitle>EndlleesTube\'e Hoş Geldiniz</DialogTitle>
                     <DialogDescription>
-                      Minecraft videolarınızı paylaşmaya başlayın
+                      Minecraft video topluluğuna katılın
                     </DialogDescription>
                   </DialogHeader>
                   <Tabs value={isRegistering ? "register" : "login"} onValueChange={(value) => setIsRegistering(value === "register")}>
@@ -626,23 +443,24 @@ export default function EndlleesTube() {
                       <TabsTrigger value="login">Giriş</TabsTrigger>
                       <TabsTrigger value="register">Kayıt</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="login">
-                      <form onSubmit={handleLogin} className="space-y-4">
+                    <TabsContent value="login" className="space-y-4">
+                      <form onSubmit={handleLogin} className="space-y-3">
                         <div>
-                          <Label htmlFor="identifier">E-posta veya Kullanıcı Adı</Label>
+                          <Label htmlFor="login-identifier">E-posta veya Kullanıcı Adı</Label>
                           <Input
-                            id="identifier"
+                            id="login-identifier"
                             name="identifier"
-                            type="text"
+                            placeholder="E-posta veya kullanıcı adı girin"
                             required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="password">Şifre</Label>
+                          <Label htmlFor="login-password">Şifre</Label>
                           <Input
-                            id="password"
+                            id="login-password"
                             name="password"
                             type="password"
+                            placeholder="Şifrenizi girin"
                             required
                           />
                         </div>
@@ -655,41 +473,43 @@ export default function EndlleesTube() {
                         <Button type="submit" className="w-full">Giriş Yap</Button>
                       </form>
                     </TabsContent>
-                    <TabsContent value="register">
-                      <form onSubmit={handleRegister} className="space-y-4">
+                    <TabsContent value="register" className="space-y-4">
+                      <form onSubmit={handleRegister} className="space-y-3">
                         <div>
-                          <Label htmlFor="displayName">Görünen Ad</Label>
+                          <Label htmlFor="register-displayName">Görünen Ad</Label>
                           <Input
-                            id="displayName"
+                            id="register-displayName"
                             name="displayName"
-                            type="text"
+                            placeholder="Görünen adınız"
                             required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="email">E-posta</Label>
+                          <Label htmlFor="register-email">E-posta</Label>
                           <Input
-                            id="email"
+                            id="register-email"
                             name="email"
                             type="email"
+                            placeholder="eposta@ornek.com"
                             required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="username">Kullanıcı Adı</Label>
+                          <Label htmlFor="register-username">Kullanıcı Adı</Label>
                           <Input
-                            id="username"
+                            id="register-username"
                             name="username"
-                            type="text"
+                            placeholder="kullaniciadi"
                             required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="password">Şifre</Label>
+                          <Label htmlFor="register-password">Şifre</Label>
                           <Input
-                            id="password"
+                            id="register-password"
                             name="password"
                             type="password"
+                            placeholder="Şifre oluşturun"
                             required
                           />
                         </div>
@@ -710,834 +530,485 @@ export default function EndlleesTube() {
         </div>
       </header>
 
+      {/* Navigation */}
+      <nav className="border-b bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-6 py-3">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Home className="w-4 h-4" />
+              Ana Sayfa
+            </Button>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Trendler
+            </Button>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Clock className="w-4 h-4" />
+              Son Eklenenler
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Filter className="w-4 h-4" />
+              Filtreler
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Trending Section */}
-        <section className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <TrendingUp className="w-6 h-6 text-red-500" />
-            <h2 className="text-2xl font-bold">Trend Videolar</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
-        </section>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-2">Trend Minecraft Videoları</h2>
+          <p className="text-muted-foreground">Topluluğumuzdan en iyi Minecraft içeriklerini keşfedin</p>
+        </div>
 
-        {/* Categories */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Kategoriler</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {[
-              { name: 'Hayatta Kalma', icon: '🏕️', color: 'bg-green-500' },
-              { name: 'Yapı', icon: '🏗️', color: 'bg-blue-500' },
-              { name: 'PvP', icon: '⚔️', color: 'bg-red-500' },
-              { name: 'Redstone', icon: '🔴', color: 'bg-red-600' },
-              { name: 'Macera', icon: '🗺️', color: 'bg-purple-500' },
-              { name: 'Komik', icon: '😄', color: 'bg-yellow-500' }
-            ].map((category) => (
-              <Card key={category.name} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-4 text-center">
-                  <div className={`w-12 h-12 ${category.color} rounded-lg flex items-center justify-center mx-auto mb-2 text-2xl`}>
-                    {category.icon}
-                  </div>
-                  <p className="font-medium text-sm">{category.name}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
+        </div>
       </main>
 
       {/* Video Player Dialog */}
       <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>{selectedVideo?.title}</DialogTitle>
             <DialogDescription>
-              {selectedVideo?.user?.displayName} • {formatViewCount(selectedVideo?.viewCount || 0)} izlenme
+              {selectedVideo?.user?.displayName} tarafından
             </DialogDescription>
           </DialogHeader>
-          <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-            <div className="text-center text-white">
-              <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-semibold">Video Oynatıcı</p>
-              <p className="text-sm opacity-75">Video oynatımı burada implement edilecek</p>
+          {selectedVideo && (
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-semibold">Video Oynatıcı</p>
+                  <p className="text-sm opacity-75">Video oynatımı burada implement edilecek</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Heart className="w-4 h-4" />
+                    {selectedVideo.likeCount}
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    {selectedVideo.commentCount}
+                  </Button>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {formatViewCount(selectedVideo.viewCount)} • {selectedVideo.createdAt.toLocaleDateString('tr-TR')}
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <h3 className="font-semibold mb-2">Açıklama</h3>
+                <p className="text-sm text-muted-foreground">{selectedVideo.description}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">Yorumlar</h3>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback>K</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="font-medium text-sm">Kullanıcı123</p>
+                        <p className="text-sm">Harika video! Gerçekten içeriği çok sevdim.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback>M</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="font-medium text-sm">MineFan</p>
+                        <p className="text-sm">Bu inşa becerilerimi çok geliştirdi!</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="mt-4">
-            <p className="text-muted-foreground">
-              {selectedVideo?.description || 'Bu video için açıklama eklenmemiş.'}
-            </p>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
   )
 }
-
 // ========================================
-// CHANNEL PAGE COMPONENT
+// AUTH CLIENT
 // ========================================
 
-export function ChannelPage() {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-  const [channelVideos, setChannelVideos] = useState<any[]>([])
-  const [channelStats, setChannelStats] = useState({
-    totalVideos: 0,
-    totalViews: 0,
-    totalLikes: 0,
-    totalComments: 0
-  })
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [profileData, setProfileData] = useState({
-    displayName: '',
-    description: '',
-    bannerUrl: ''
-  })
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [isUploading, setIsUploading] = useState(false)
+'use client'
+
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+
+interface User {
+  id: string
+  username: string
+  email: string
+  displayName: string
+  role: string
+  createdAt: string
+}
+
+interface AuthContextType {
+  user: User | null
+  isLoading: boolean
+  login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
+  refreshToken: () => Promise<boolean>
+}
+
+interface RegisterData {
+  displayName: string
+  email: string
+  username: string
+  password: string
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/')
-      return
-    }
+    checkAuth()
+  }, [])
 
-    if (user) {
-      setProfileData({
-        displayName: user.displayName,
-        description: '',
-        bannerUrl: ''
-      })
-      fetchChannelData()
-    }
-  }, [user, isLoading, router])
-
-  const fetchChannelData = async () => {
+  const checkAuth = async () => {
     try {
-      const videosResponse = await fetch('/api/videos/my-videos', {
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/auth/me', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       
-      if (videosResponse.ok) {
-        const data = await videosResponse.json()
-        if (data.success) {
-          setChannelVideos(data.videos)
-          
-          const stats = data.videos.reduce((acc: any, video: any) => {
-            acc.totalVideos++
-            acc.totalViews += video.viewCount || 0
-            acc.totalLikes += video.likeCount || 0
-            acc.totalComments += video.commentCount || 0
-            return acc
-          }, { totalVideos: 0, totalViews: 0, totalLikes: 0, totalComments: 0 })
-          
-          setChannelStats(stats)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch channel data:', error)
-    }
-  }
-
-  const formatViewCount = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}B`
-    return `${count}`
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Play className="w-4 h-4 text-white" />
-          </div>
-          <p className="text-muted-foreground">Kanal Yükleniyor...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Channel Header */}
-      <div className="relative">
-        <div className="h-48 bg-gradient-to-r from-red-600 to-red-800">
-          <div className="absolute inset-0 bg-black/20" />
-        </div>
-        
-        <div className="container mx-auto px-4 -mt-16 relative z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 mb-8">
-            <Avatar className="w-32 h-32 border-4 border-background">
-              <AvatarFallback className="text-3xl">
-                {user.displayName[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{user.displayName}</h1>
-                  <p className="text-muted-foreground mb-4">@{user.username}</p>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Video className="w-4 h-4" />
-                      {channelStats.totalVideos} video
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      {formatViewCount(channelStats.totalViews)} toplam izlenme
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Channel Content */}
-      <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="videos">Videolar</TabsTrigger>
-            <TabsTrigger value="stats">İstatistikler</TabsTrigger>
-            <TabsTrigger value="about">Hakkında</TabsTrigger>
-            <TabsTrigger value="settings">Ayarlar</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="videos" className="mt-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Videolarım</h2>
-            </div>
-            
-            {channelVideos.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {channelVideos.map((video) => (
-                  <Card key={video.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-200">
-                    <div className="relative aspect-video bg-muted">
-                      <img 
-                        src={video.thumbnailPath || '/api/placeholder/320/180'} 
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
-                        {video.duration || '0:00'}
-                      </Badge>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold line-clamp-2 text-sm mb-2">{video.title}</h3>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          {formatViewCount(video.viewCount || 0)} izlenme
-                        </span>
-                        <span>{new Date(video.createdAt).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Henüz video yüklenmemiş</h3>
-                <p className="text-muted-foreground mb-4">
-                  İlk videonuzu yükleyerek kanalınızı başlatın
-                </p>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="stats" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Video</CardTitle>
-                  <Video className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{channelStats.totalVideos}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam İzlenme</CardTitle>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatViewCount(channelStats.totalViews)}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Beğeni</CardTitle>
-                  <Heart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{channelStats.totalLikes}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Yorum</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{channelStats.totalComments}</div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="about" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Kanal Hakkında</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Kanalınız hakkında bilgiler burada görünecek.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="settings" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Kanal Ayarları</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Kanal ayarları burada görünecek.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  )
-}
-
-// ========================================
-// SETTINGS PAGE COMPONENT
-// ========================================
-
-export function SettingsPage() {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState('profile')
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
-  
-  const [profileData, setProfileData] = useState({
-    displayName: '',
-    email: '',
-    username: '',
-    bio: ''
-  })
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/')
-      return
-    }
-
-    if (user) {
-      setProfileData({
-        displayName: user.displayName,
-        email: user.email,
-        username: user.username,
-        bio: ''
-      })
-    }
-  }, [user, isLoading, router])
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Settings className="w-4 h-4 text-white" />
-          </div>
-          <p className="text-muted-foreground">Ayarlar Yükleniyor...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
-              ← Ana Sayfa
-            </Button>
-            <h1 className="text-xl font-bold">Ayarlar</h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarFallback>{user.displayName[0]}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium">{user.displayName}</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Settings Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ayarlar</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <nav className="space-y-1">
-                  <Button
-                    variant={activeTab === 'profile' ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('profile')}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Profil
-                  </Button>
-                  <Button
-                    variant={activeTab === 'security' ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('security')}
-                  >
-                    <Lock className="w-4 h-4 mr-2" />
-                    Güvenlik
-                  </Button>
-                  <Button
-                    variant={activeTab === 'notifications' ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('notifications')}
-                  >
-                    <Bell className="w-4 h-4 mr-2" />
-                    Bildirimler
-                  </Button>
-                  <Button
-                    variant={activeTab === 'privacy' ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('privacy')}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Gizlilik
-                  </Button>
-                </nav>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Profile Settings */}
-            {activeTab === 'profile' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profil Ayarları</CardTitle>
-                  <CardDescription>
-                    Hesap bilgilerinizi yönetin
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-20 h-20">
-                        <AvatarFallback className="text-2xl">
-                          {user.displayName[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Button type="button" variant="outline" size="sm">
-                          Profil Fotoğrafını Değiştir
-                        </Button>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          JPG, GIF veya PNG. Maksimum 2MB.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="displayName">Görünen Ad</Label>
-                        <Input
-                          id="displayName"
-                          value={profileData.displayName}
-                          onChange={(e) => setProfileData({...profileData, displayName: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="username">Kullanıcı Adı</Label>
-                        <Input
-                          id="username"
-                          value={profileData.username}
-                          onChange={(e) => setProfileData({...profileData, username: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="email">E-posta</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="bio">Biyografi</Label>
-                      <Textarea
-                        id="bio"
-                        placeholder="Kendinizi tanımlayın..."
-                        value={profileData.bio}
-                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                        rows={4}
-                      />
-                    </div>
-                    
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Security Settings */}
-            {activeTab === 'security' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Güvenlik Ayarları</CardTitle>
-                  <CardDescription>
-                    Hesabınızın güvenliğini yönetin
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Şifre Değiştir</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="currentPassword">Mevcut Şifre</Label>
-                          <Input id="currentPassword" type="password" />
-                        </div>
-                        <div>
-                          <Label htmlFor="newPassword">Yeni Şifre</Label>
-                          <Input id="newPassword" type="password" />
-                        </div>
-                        <div>
-                          <Label htmlFor="confirmPassword">Yeni Şifre (Tekrar)</Label>
-                          <Input id="confirmPassword" type="password" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button>Şifreyi Değiştir</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Other tabs content would go here */}
-            {activeTab !== 'profile' && activeTab !== 'security' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="capitalize">{activeTab} Ayarları</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    {activeTab} ayarları burada görünecek.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ========================================
-// VIDEO PAGE COMPONENT
-// ========================================
-
-export function VideoPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { user } = useAuth()
-  const [video, setVideo] = useState<any>(null)
-  const [comments, setComments] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [isLiked, setIsLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(0)
-  const [commentText, setCommentText] = useState('')
-  const [viewCount, setViewCount] = useState(0)
-
-  const videoId = params.id as string
-
-  useEffect(() => {
-    fetchVideo()
-    fetchComments()
-  }, [videoId])
-
-  const fetchVideo = async () => {
-    try {
-      const response = await fetch(`/api/videos/${videoId}`)
       if (response.ok) {
         const data = await response.json()
-        if (data.success) {
-          setVideo(data.video)
-          setLikeCount(data.video.likeCount)
-          setViewCount(data.video.viewCount)
-        }
+        setUser(data.user)
+      } else {
+        localStorage.removeItem('accessToken')
       }
     } catch (error) {
-      console.error('Failed to fetch video:', error)
+      console.error('Auth check failed:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchComments = async () => {
+  const login = async (identifier: string, password: string) => {
     try {
-      const response = await fetch(`/api/videos/${videoId}/comments`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setComments(data.comments)
-        }
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setUser(data.user)
+        localStorage.setItem('accessToken', data.accessToken)
+        return { success: true }
+      } else {
+        return { success: false, error: data.error }
       }
     } catch (error) {
-      console.error('Failed to fetch comments:', error)
+      return { success: false, error: 'Network error' }
     }
   }
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60)
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const register = async (data: RegisterData) => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setUser(result.user)
+        localStorage.setItem('accessToken', result.accessToken)
+        return { success: true }
+      } else {
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error' }
     }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatViewCount = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}B`
-    return `${count}`
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setUser(null)
+      localStorage.removeItem('accessToken')
+    }
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Play className="w-4 h-4 text-white" />
-          </div>
-          <p className="text-muted-foreground">Video Yükleniyor...</p>
-        </div>
-      </div>
-    )
+  const refreshToken = async () => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('accessToken', data.accessToken)
+        return true
+      } else {
+        await logout()
+        return false
+      }
+    } catch (error) {
+      await logout()
+      return false
+    }
   }
 
-  if (!video) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Video Bulunamadı</h1>
-          <p className="text-muted-foreground mb-4">Aradığınız video mevcut değil veya kaldırılmış olabilir.</p>
-          <Button onClick={() => router.push('/')}>Ana Sayfaya Dön</Button>
-        </div>
-      </div>
-    )
+  const contextValue: AuthContextType = {
+    user,
+    isLoading,
+    login,
+    register,
+    logout,
+    refreshToken,
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
-              ← Ana Sayfa
-            </Button>
-            <h1 className="text-xl font-bold">EndlleesTube</h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Input placeholder="Videolarda ara..." className="w-64" />
-            {user ? (
-              <Avatar className="w-8 h-8">
-                <AvatarFallback>{user.displayName[0]}</AvatarFallback>
-              </Avatar>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => router.push('/')}>
-                Giriş Yap
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Player */}
-          <div className="lg:col-span-2">
-            <div className="aspect-video bg-black rounded-lg overflow-hidden relative group">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Play className="w-20 h-20 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">Video Oynatıcı</p>
-                  <p className="text-sm opacity-75">Video oynatımı burada implement edilecek</p>
-                </div>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                <div className="flex items-center justify-between text-white">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:text-white hover:bg-white/20"
-                      onClick={() => setIsPlaying(!isPlaying)}
-                    >
-                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    </Button>
-                    <span className="text-sm">{formatTime(currentTime)}</span>
-                    <div className="w-64 bg-white/30 rounded-full h-1">
-                      <div 
-                        className="bg-white h-1 rounded-full transition-all"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-sm">{formatTime(duration || video.duration)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Video Info */}
-            <div className="mt-4">
-              <h1 className="text-2xl font-bold mb-2">{video.title}</h1>
-              
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Eye className="w-4 h-4" />
-                    {formatViewCount(viewCount)} izlenme
-                  </span>
-                </div>
-              </div>
-
-              <Separator className="my-4" />
-
-              {/* Channel Info */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12">
-                    <AvatarFallback>{video.user.displayName[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{video.user.displayName}</h3>
-                    <p className="text-sm text-muted-foreground">@{video.user.username}</p>
-                  </div>
-                </div>
-                
-                <Button variant="outline">Abone Ol</Button>
-              </div>
-
-              <Separator className="my-4" />
-
-              {/* Description */}
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-2">Açıklama</h2>
-                <p className="text-muted-foreground whitespace-pre-wrap">
-                  {video.description || 'Bu video için açıklama eklenmemiş.'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Yorumlar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {comments.length > 0 ? (
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback>{comment.user.displayName[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">{comment.user.displayName}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{comment.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">
-                    Henüz yorum yapılmamış.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
   )
 }
 
-// ========================================
-// EXPORT ALL COMPONENTS
-// ========================================
-
-export {
-  AuthProvider,
-  useAuth,
-  getAccessToken
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }
 
-// Frontend.js dosyası sonu
-// Tüm frontend component'leri tek dosyada toplandı
+export function getAccessToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('accessToken')
+  }
+  return null
+}
+// ========================================
+// LAYOUT AND GLOBAL STYLES
+// ========================================
+
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/lib/auth-client";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "EndlleesTube - Minecraft Video Platform",
+  description: "A modern video platform for Minecraft content creators. Upload, share, and discover amazing Minecraft videos.",
+  keywords: ["Minecraft", "video", "platform", "content", "creators", "gaming"],
+  authors: [{ name: "EndlleesTube Team" }],
+  icons: {
+    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+  },
+  openGraph: {
+    title: "EndlleesTube - Minecraft Video Platform",
+    description: "A modern video platform for Minecraft content creators",
+    url: "https://endlleestube.com",
+    siteName: "EndlleesTube",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EndlleesTube - Minecraft Video Platform",
+    description: "A modern video platform for Minecraft content creators",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+      >
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+// ========================================
+// UTILS
+// ========================================
+
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}

@@ -1,20 +1,182 @@
 // ========================================
-// ENDLLEESTUBE - BACKEND.JS
-// Tüm Backend API Kodları Tek Dosyada
+// ENDLLEESTUBE BACKEND
+// ========================================
+// Node.js + Prisma + SQLite + JWT
 // ========================================
 
-import { NextRequest, NextResponse } from 'next/server'
+// Database Schema
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  displayName  String
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  videos       Video[]
+  comments     Comment[]
+  refreshTokens RefreshToken[]
+  views        View[]
+  likes        Like[]
+
+  @@map("users")
+}
+
+model Video {
+  id          String        @id @default(cuid())
+  userId      String        @map("user_id")
+  title       String
+  description String?
+  tags        String?       // JSON array of tags
+  visibility  VideoVisibility @default(PUBLIC)
+  status      VideoStatus   @default(UPLOADING)
+  duration    Int?          // Duration in seconds
+  fileSize    Int?          // Original file size in bytes
+  processedSize Int?        // Processed file size in bytes
+  thumbnailPath String?     @map("thumbnail_path")
+  videoPath   String?       @map("video_path")
+  hlsPath     String?       @map("hls_path")
+  viewCount   Int           @default(0) @map("view_count")
+  likeCount   Int           @default(0) @map("like_count")
+  commentCount Int          @default(0) @map("comment_count")
+  isDeleted   Boolean       @default(false) @map("is_deleted")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  views       View[]
+  likes       Like[]
+
+  @@map("videos")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  videoId   String   @map("video_id")
+  userId    String   @map("user_id")
+  parentId  String?  @map("parent_id")
+  content   String
+  isHidden  Boolean  @default(false) @map("is_hidden")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model View {
+  id      String   @id @default(cuid())
+  videoId String   @map("video_id")
+  userId  String?  @map("user_id")
+  ipHash  String   @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  video   Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([videoId, ipHash])
+  @@map("views")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  videoId   String   @map("video_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, userId])
+  @@map("likes")
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum VideoVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum VideoStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+// ========================================
+// DATABASE CONNECTION
+// ========================================
+
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query'],
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// ========================================
+// AUTHENTICATION SERVICE
+// ========================================
+
 import { db } from '@/lib/db'
 import { hash, verify } from 'argon2'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { v4 as uuidv4 } from 'uuid'
-
-// ========================================
-// CONFIGURATION & SCHEMAS
-// ========================================
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret'
@@ -31,21 +193,10 @@ export const loginSchema = z.object({
   password: z.string().min(1)
 })
 
-const uploadSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(5000).optional(),
-  visibility: z.enum(['PUBLIC', 'UNLISTED', 'PRIVATE']).default('PUBLIC'),
-  tags: z.string().optional(),
-})
-
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
 }
-
-// ========================================
-// AUTH SERVICE CLASS
-// ========================================
 
 export class AuthService {
   static async register(data: z.infer<typeof registerSchema>): Promise<{ user: any; tokens: AuthTokens }> {
@@ -219,268 +370,14 @@ export class AuthService {
     }
   }
 }
-
 // ========================================
-// AUTH API ROUTES
-// ========================================
-
-// POST /api/auth/register
-export async function registerRoute(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const validatedData = registerSchema.parse(body)
-
-    const result = await AuthService.register(validatedData)
-
-    // Set HTTP-only cookie for refresh token
-    const response = NextResponse.json({
-      success: true,
-      user: result.user,
-      accessToken: result.tokens.accessToken
-    })
-
-    response.cookies.set('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    })
-
-    return response
-  } catch (error) {
-    console.error('Registration error:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: error.errors
-        },
-        { status: 400 }
-      )
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message
-        },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/auth/login
-export async function loginRoute(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const validatedData = loginSchema.parse(body)
-
-    const result = await AuthService.login(validatedData)
-
-    // Set HTTP-only cookie for refresh token
-    const response = NextResponse.json({
-      success: true,
-      user: result.user,
-      accessToken: result.tokens.accessToken
-    })
-
-    response.cookies.set('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    })
-
-    return response
-  } catch (error) {
-    console.error('Login error:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: error.errors
-        },
-        { status: 400 }
-      )
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message
-        },
-        { status: 401 }
-      )
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-// GET /api/auth/me
-export async function meRoute(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'No access token provided'
-        },
-        { status: 401 }
-      )
-    }
-
-    const token = authHeader.substring(7)
-    const decoded = await AuthService.verifyAccessToken(token)
-
-    // Fetch user from database
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        displayName: true,
-        role: true,
-        createdAt: true
-      }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'User not found'
-        },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      user
-    })
-  } catch (error) {
-    console.error('Auth verification error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Invalid access token'
-      },
-      { status: 401 }
-    )
-  }
-}
-
-// POST /api/auth/logout
-export async function logoutRoute(request: NextRequest) {
-  try {
-    const refreshToken = request.cookies.get('refreshToken')?.value
-
-    if (refreshToken) {
-      await AuthService.logout(refreshToken)
-    }
-
-    // Clear refresh token cookie
-    const response = NextResponse.json({
-      success: true,
-      message: 'Logged out successfully'
-    })
-
-    response.cookies.delete('refreshToken')
-
-    return response
-  } catch (error) {
-    console.error('Logout error:', error)
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/auth/refresh
-export async function refreshRoute(request: NextRequest) {
-  try {
-    const refreshToken = request.cookies.get('refreshToken')?.value
-
-    if (!refreshToken) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'No refresh token provided'
-        },
-        { status: 401 }
-      )
-    }
-
-    const tokens = await AuthService.refresh(refreshToken)
-
-    // Set new refresh token cookie
-    const response = NextResponse.json({
-      success: true,
-      accessToken: tokens.accessToken
-    })
-
-    response.cookies.set('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    })
-
-    return response
-  } catch (error) {
-    console.error('Token refresh error:', error)
-
-    // Clear invalid refresh token
-    const response = NextResponse.json(
-      {
-        success: false,
-        error: 'Invalid refresh token'
-      },
-      { status: 401 }
-    )
-
-    response.cookies.delete('refreshToken')
-
-    return response
-  }
-}
-
-// ========================================
-// VIDEOS API ROUTES
+// API ROUTES
 // ========================================
 
-// GET /api/videos
-export async function videosRoute(request: NextRequest) {
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -573,249 +470,9 @@ export async function videosRoute(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}import { NextRequest, NextResponse } from 'next/server'
 
-// POST /api/videos/upload
-export async function videoUploadRoute(request: NextRequest) {
-  try {
-    // Check authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
-    const token = authHeader.substring(7)
-    const decoded = await AuthService.verifyAccessToken(token)
-
-    // Get user from database
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Parse form data
-    const formData = await request.formData()
-    const videoFile = formData.get('video') as File
-    
-    if (!videoFile) {
-      return NextResponse.json(
-        { success: false, error: 'No video file provided' },
-        { status: 400 }
-      )
-    }
-
-    // Validate file type
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo']
-    if (!allowedTypes.includes(videoFile.type)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid file type. Only MP4, WebM, MOV, and AVI files are allowed.' },
-        { status: 400 }
-      )
-    }
-
-    // Validate file size (2GB max)
-    const maxSize = 2 * 1024 * 1024 * 1024 // 2GB in bytes
-    if (videoFile.size > maxSize) {
-      return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size is 2GB.' },
-        { status: 400 }
-      )
-    }
-
-    // Parse metadata
-    const metadata = uploadSchema.parse({
-      title: formData.get('title'),
-      description: formData.get('description'),
-      visibility: formData.get('visibility'),
-      tags: formData.get('tags'),
-    })
-
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'uploads')
-    const videosDir = join(uploadsDir, 'videos')
-    const thumbnailsDir = join(uploadsDir, 'thumbnails')
-    
-    try {
-      await mkdir(videosDir, { recursive: true })
-      await mkdir(thumbnailsDir, { recursive: true })
-    } catch (error) {
-      // Directory might already exist
-    }
-
-    // Generate unique filename
-    const videoId = uuidv4()
-    const videoExtension = videoFile.name.split('.').pop()
-    const videoFilename = `${videoId}.${videoExtension}`
-    const videoPath = join(videosDir, videoFilename)
-
-    // Save video file
-    const bytes = await videoFile.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(videoPath, buffer)
-
-    // Create video record in database
-    const video = await db.video.create({
-      data: {
-        id: videoId,
-        userId: user.id,
-        title: metadata.title,
-        description: metadata.description,
-        tags: metadata.tags,
-        visibility: metadata.visibility,
-        status: 'PROCESSING',
-        fileSize: videoFile.size,
-        videoPath: `/uploads/videos/${videoFilename}`,
-        thumbnailPath: `/api/thumbnail/${videoId}`, // Placeholder for now
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          }
-        }
-      }
-    })
-
-    // TODO: Queue video processing job
-    // This would typically involve:
-    // 1. Generating thumbnails
-    // 2. Compressing video to 720p
-    // 3. Creating HLS segments
-    // 4. Updating video status to READY
-
-    return NextResponse.json({
-      success: true,
-      video: {
-        id: video.id,
-        title: video.title,
-        description: video.description,
-        visibility: video.visibility,
-        status: video.status,
-        createdAt: video.createdAt,
-        user: video.user,
-      }
-    })
-
-  } catch (error) {
-    console.error('Video upload error:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: error.errors
-        },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-// GET /api/videos/my-videos
-export async function myVideosRoute(request: NextRequest) {
-  try {
-    // Check authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
-    const token = authHeader.substring(7)
-    const decoded = await AuthService.verifyAccessToken(token)
-
-    // Get user from database
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Fetch user's videos
-    const videos = await db.video.findMany({
-      where: {
-        userId: user.id,
-        isDeleted: false
-      },
-      include: {
-        _count: {
-          select: {
-            comments: true,
-            views: true,
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
-    // Format videos for response
-    const formattedVideos = videos.map(video => ({
-      id: video.id,
-      title: video.title,
-      description: video.description,
-      thumbnailPath: video.thumbnailPath,
-      duration: video.duration,
-      viewCount: video.viewCount,
-      likeCount: video.likeCount,
-      commentCount: video._count.comments,
-      visibility: video.visibility,
-      status: video.status,
-      createdAt: video.createdAt,
-      updatedAt: video.updatedAt
-    }))
-
-    return NextResponse.json({
-      success: true,
-      videos: formattedVideos
-    })
-
-  } catch (error) {
-    console.error('My videos fetch error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-// ========================================
-// THUMBNAIL API ROUTE
-// ========================================
-
-// GET /api/thumbnail/[id]
-export async function thumbnailRoute(
+export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -839,127 +496,65 @@ export async function thumbnailRoute(
     },
   })
 }
-
 // ========================================
-// HEALTH CHECK API ROUTE
+// SERVER CONFIGURATION
 // ========================================
 
-// GET /api/health
-export async function healthRoute(request: NextRequest) {
+// server.ts - Next.js Standalone + Socket.IO
+import { setupSocket } from '@/lib/socket';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import next from 'next';
+
+const dev = process.env.NODE_ENV !== 'production';
+const currentPort = 3000;
+const hostname = '0.0.0.0';
+
+// Custom server with Socket.IO integration
+async function createCustomServer() {
   try {
-    // Check database connection
-    await db.user.count()
-    
-    return NextResponse.json({
-      success: true,
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
-    })
-  } catch (error) {
-    console.error('Health check error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        status: 'unhealthy',
-        error: 'Database connection failed'
-      },
-      { status: 503 }
-    )
-  }
-}
+    // Create Next.js app
+    const nextApp = next({ 
+      dev,
+      dir: process.cwd(),
+      // In production, use the current directory where .next is located
+      conf: dev ? undefined : { distDir: './.next' }
+    });
 
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
+    await nextApp.prepare();
+    const handle = nextApp.getRequestHandler();
 
-// Helper function to verify authentication middleware
-export async function verifyAuth(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-  try {
-    const decoded = await AuthService.verifyAccessToken(token)
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        displayName: true,
-        role: true,
-        createdAt: true
+    // Create HTTP server that will handle both Next.js and Socket.IO
+    const server = createServer((req, res) => {
+      // Skip socket.io requests from Next.js handler
+      if (req.url?.startsWith('/api/socketio')) {
+        return;
       }
-    })
-    return user
-  } catch (error) {
-    return null
+      handle(req, res);
+    });
+
+    // Setup Socket.IO
+    const io = new Server(server, {
+      path: '/api/socketio',
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    setupSocket(io);
+
+    // Start the server
+    server.listen(currentPort, hostname, () => {
+      console.log(`> Ready on http://${hostname}:${currentPort}`);
+      console.log(`> Socket.IO server running at ws://${hostname}:${currentPort}/api/socketio`);
+    });
+
+  } catch (err) {
+    console.error('Server startup error:', err);
+    process.exit(1);
   }
 }
 
-// Helper function to handle API errors
-export function handleApiError(error: any, defaultMessage: string = 'Internal server error') {
-  console.error(defaultMessage, error)
-  
-  if (error instanceof z.ZodError) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Validation failed',
-        details: error.errors
-      },
-      { status: 400 }
-    )
-  }
-
-  if (error instanceof Error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message
-      },
-      { status: 400 }
-    )
-  }
-
-  return NextResponse.json(
-    {
-      success: false,
-      error: defaultMessage
-    },
-    { status: 500 }
-  )
-}
-
-// ========================================
-// EXPORT ALL FUNCTIONS
-// ========================================
-
-export {
-  // Auth routes
-  registerRoute,
-  loginRoute,
-  meRoute,
-  logoutRoute,
-  refreshRoute,
-  
-  // Video routes
-  videosRoute,
-  videoUploadRoute,
-  myVideosRoute,
-  
-  // Utility routes
-  thumbnailRoute,
-  healthRoute,
-  
-  // Utilities
-  verifyAuth,
-  handleApiError,
-  AuthService
-}
-
-// Backend.js dosyası sonu
-// Tüm backend API kodları tek dosyada toplandı
+// Start the server
+createCustomServer();
