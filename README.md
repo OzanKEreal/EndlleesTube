@@ -1,141 +1,276 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# EndlleesTube - Minecraft Video Platformu
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Tamamen Türkçe, modern bir YouTube benzeri video platformu. Minecraft topluluğu için özel olarak tasarlanmış, Next.js 15 ile geliştirilmiş kapsamlı bir video paylaşım platformudur.
 
-## ✨ Technology Stack
+## 🎯 Tamamlanan Özellikler
 
-This scaffold provides a robust foundation built with:
+### ✅ **Temel Özellikler**
+- **🔐 Tam Türkçe Kimlik Doğrulama Sistemi**
+  - Kullanıcı kaydı ve giriş (e-posta veya kullanıcı adı ile)
+  - JWT tabanlı güvenli oturum yönetimi
+  - Access token (15 dakika) + refresh token (7 gün)
+  - Argon2 ile şifre güvenliği
+  - Rol sistemi (Kullanıcı, Moderatör, Yönetici)
 
-### 🎯 Core Framework
-- **⚡ Next.js 15** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+- **📹 Video Yönetim Sistemi**
+  - Video yükleme (MP4, WebM, MOV, AVI - max 2GB)
+  - Metadata yönetimi (başlık, açıklama, etiketler, görünürlük)
+  - Video listeleme ve sayfalama
+  - Görünürlük kontrolleri (Herkese Açık, Listelenmemiş, Özel)
+  - Video yükleme progress bar
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+- **🎨 Modern Türkçe Arayüz**
+  - Tamamen Türkçe kullanıcı deneyimi
+  - Responsive tasarım (mobil uyumlu)
+  - shadcn/ui component kütüphanesi
+  - Modern, YouTube benzeri tasarım
+  - Video kartları, hover efektleri, smooth geçişler
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+### 🏠 **Ana Sayfa Özellikleri**
+- Trend videolar bölümü
+- Arama fonksiyonu
+- Video kartları (thumbnail, izlenme, beğeni, yorum sayıları)
+- Video oynatıcı modal
+- Yorum sistemi (görsel olarak hazır)
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Axios** - Promise-based HTTP client
+### 👤 **Kanalım Sayfası**
+- **Kanal Profili**
+  - Kanal banner ve avatar
+  - Kanal istatistikleri (video sayısı, toplam izlenme, beğeni, yorum)
+  - Profil düzenleme
+  
+- **Video Yönetimi**
+  - Kullanıcının kendi videoları
+  - Video yükleme (kanal üzerinden)
+  - Video görünürlük rozetleri
+  - Video silme ve düzenleme
+  
+- **İstatistikler**
+  - Kanal performans kartları
+  - Toplam video, izlenme, beğeni, yorum sayıları
+  - Grafik alanları (gelecek için hazır)
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+- **Kanal Ayarları**
+  - Genel ayarlar (yorumlar, öneriler)
+  - Gizlilik ayarları
+  - Kanal silme seçeneği
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+### ⚙️ **Ayarlar Sayfası**
+- **Profil Ayarları**
+  - Profil fotoğrafı değiştirme
+  - Görünen ad, kullanıcı adı, e-posta güncelleme
+  - Biyografi ekleme
+  
+- **Güvenlik Ayarları**
+  - Şifre değiştirme
+  - İki faktörlü kimlik doğrulama (2FA) hazır
+  - Güvenlik logları
+  
+- **Bildirim Ayarları**
+  - E-posta bildirimleri
+  - Yorum bildirimleri
+  - Beğeni bildirimleri
+  - Takipçi bildirimleri
+  
+- **Gizlilik Ayarları**
+  - Profil görünürlüğü
+  - E-posta göster/gizle
+  - Aktivite görünürlüğü
+  - Mesaj izinleri
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+## 🛠️ Teknoloji Altyapısı
 
-## 🎯 Why This Scaffold?
+### Frontend
+- **Next.js 15** - App Router ile
+- **TypeScript** - Tam tip güvenliği
+- **Tailwind CSS** - Modern stil sistemi
+- **shadcn/ui** - Component kütüphanesi
+- **Lucide React** - İkon seti
 
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
+### Backend
+- **Next.js API Routes** - RESTful API
+- **Prisma ORM** - SQLite veritabanı
+- **JWT** - Kimlik doğrulama
+- **Argon2** - Şifre güvenliği
+- **Zod** - Validasyon
 
-## 🚀 Quick Start
+### Veritabanı
+- **SQLite** - Geliştirme için
+- **Prisma** - Modern ORM
+- Tam ilişkisel şema (users, videos, comments, views, refresh_tokens)
 
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
-
-## 🤖 Powered by Z.ai
-
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
-
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
-
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
-
-## 📁 Project Structure
+## 📁 Proje Yapısı
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   │   ├── auth/          # Kimlik doğrulama endpoint'leri
+│   │   └── videos/        # Video endpoint'leri
+│   ├── channel/           # Kanal sayfası
+│   ├── settings/          # Ayarlar sayfası
+│   ├── globals.css        # Global stiller
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Ana sayfa
+├── components/            # React components
+│   └── ui/               # shadcn/ui components
+├── lib/                  # Utility libraries
+│   ├── auth.ts           # Backend auth logic
+│   ├── auth-client.tsx   # Client-side auth
+│   └── db.ts             # Database connection
+└── prisma/               # Database schema
+    └── schema.prisma     # Prisma schema
 ```
 
-## 🎨 Available Features & Components
+## 🚀 Kurulum ve Çalıştırma
 
-This scaffold includes a comprehensive set of modern web development tools:
+### 1. **Kurulum**
+```bash
+git clone <repository-url>
+cd endlleestube
+npm install
+```
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+### 2. **Ortam Değişkenleri**
+```bash
+cp .env.example .env
+```
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+`.env` dosyasını yapılandırın:
+```env
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key"
+NODE_ENV="development"
+```
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### 3. **Veritabanı Kurulumu**
+```bash
+npm run db:push
+```
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Axios + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+### 4. **Geliştirme Sunucusunu Başlatma**
+```bash
+npm run dev
+```
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+### 5. **Tarayıcıda Açın**
+[http://localhost:3000](http://localhost:3000)
 
-## 🤝 Get Started with Z.ai
+## 🎮 Kullanım
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+### **Kayıt Olma**
+1. "Giriş Yap" butonuna tıklayın
+2. "Kayıt" sekmesine geçin
+3. Görünen ad, e-posta, kullanıcı adı ve şifre girin
+4. "Hesap Oluştur" butonuna tıklayın
+
+### **Video Yükleme**
+1. Giriş yapın
+2. "Yükle" butonuna tıklayın
+3. Video dosyası seçin (max 2GB)
+4. Başlık ve açıklama ekleyin
+5. Görünürlük seçin
+6. "Video Yükle" butonuna tıklayın
+
+### **Kanal Yönetimi**
+1. Kullanıcı menüsünden "Kanalım" seçeneğine tıklayın
+2. Videolarınızı, istatistiklerinizi görüntüleyin
+3. Profilinizi düzenleyin
+4. Yeni video yükleyin
+
+### **Ayarlar**
+1. Kullanıcı menüsünden "Ayarlar" seçeneğine tıklayın
+2. Profil, güvenlik, bildirim ve gizlilik ayarlarınızı yönetin
+
+## 🔒 Güvenlik Özellikleri
+
+- **Şifre Güvenliği**: Argon2 ile güvenli şifre saklama
+- **JWT Kimlik Doğrulama**: Güvenli token tabanlı oturum yönetimi
+- **Input Validasyonu**: Zod ile request validasyonu
+- **Dosya Güvenliği**: Dosya tipi ve boyut validasyonu
+- **CORS Koruması**: Doğru CORS yapılandırması
+- **SQL Injection Koruması**: Prisma ORM koruması
+
+## 📊 API Endpoint'leri
+
+### Kimlik Doğrulama
+- `POST /api/auth/register` - Kullanıcı kaydı
+- `POST /api/auth/login` - Kullanıcı girişi
+- `POST /api/auth/logout` - Çıkış
+- `POST /api/auth/refresh` - Token yenileme
+- `GET /api/auth/me` - Mevcut kullanıcı bilgisi
+
+### Videolar
+- `GET /api/videos` - Video listeleme
+- `POST /api/videos/upload` - Video yükleme
+- `GET /api/videos/my-videos` - Kullanıcının videoları
+- `GET /api/thumbnail/[id]` - Video thumbnail
+
+## 🎯 Veritabanı Şeması
+
+### Users (Kullanıcılar)
+- `id`, `username`, `email`, `displayName`, `passwordHash`, `role`, `createdAt`
+
+### Videos (Videolar)
+- `id`, `userId`, `title`, `description`, `visibility`, `status`, `viewCount`, `likeCount`, `commentCount`
+
+### Comments (Yorumlar)
+- `id`, `videoId`, `userId`, `parentId`, `content`, `isHidden`, `createdAt`
+
+### Views (İzlenmeler)
+- `id`, `videoId`, `userId`, `ipHash`, `createdAt`
+
+### Refresh Tokens
+- `id`, `userId`, `tokenHash`, `expiresAt`, `createdAt`
+
+## 🌟 Öne Çıkan Özellikler
+
+1. **%100 Türkçe Arayüz** - Her şey Türkçe!
+2. **Modern Tasarım** - YouTube benzeri, kullanıcı dostu arayüz
+3. **Responsive** - Masaüstü, tablet ve mobil uyumlu
+4. **Güvenli** - Modern güvenlik standartları
+5. **Hızlı** - Next.js 15 ile optimize edilmiş
+6. **Kapsamlı** - Kanal yönetimi, ayarlar, istatistikler
+7. **Scalable** - Genişletilebilir mimari
+
+## 📈 Gelecek Plan
+
+### 🔄 **Yakında Eklenecekler**
+- Video oynatıcı (HLS desteği ile)
+- Yorum sistemi (yanıt ve moderasyon)
+- Video silme ve düzenleme
+- Admin paneli
+- Analitik ve detaylı istatistikler
+- Canlı yayın desteği
+- Mobil uygulama
+
+### 🚀 **Vizyon**
+- Türkiye'nin en büyük Minecraft video platformu
+- Yerli geliştirilmiş, tamamen Türkçe
+- Topluluk odaklı özellikler
+- Sürekli gelişim ve yenilik
+
+## 🤝 Katkıda Bulun
+
+1. Repository'i forklayın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Değişikliklerinizi yapın (`git commit -m 'Add some amazing feature'`)
+4. Branch'e push yapın (`git push origin feature/amazing-feature`)
+5. Pull Request açın
+
+## 📄 Lisans
+
+Bu proje MIT Lisansı altında lisanslanmıştır - [LICENSE](LICENSE) dosyasına bakın.
+
+## 🙏 Teşekkürler
+
+- Next.js ekibi - harika framework için
+- Prisma - modern ORM için
+- shadcn/ui - güzel component'lar için
+- Tailwind CSS - utility-first CSS için
+- Tüm Türk geliştirici topluluğu
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+**EndlleesTube** - ❤️ ile Türkiye'de geliştirildi
